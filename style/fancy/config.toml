@@ -1,0 +1,5 @@
+[main]
+padding = 50
+text_color = 'rgb(70, 70, 70)'
+panel_color = 'white' # 可以是颜色单词或16进制颜色或rgb色值 -> panel_color = (255, 255, 255)
+panel_trans = 25 # 单位 百分比
