@@ -540,5 +540,5 @@ data = {
 
 print(requests.post('http://127.0.0.1:5000/generator/user_info', json=data, params={
     "style": "fancy",
-    # "bg_url": "https://img0.baidu.com/it/u=628426564,2176264072&fm=26&fmt=auto"
+    "bg_url": "https://img0.baidu.com/it/u=628426564,2176264072&fm=26&fmt=auto"
 }).text)

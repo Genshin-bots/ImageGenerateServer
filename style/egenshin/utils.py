@@ -1,169 +1,19 @@
-# -*- coding: UTF-8 -*-
-from sqlitedict import SqliteDict
 from PIL import ImageFont
 import aiofiles
 import httpx
-import yaml
 
 import os
-import re
-import time
-import json
-import base64
-import datetime
-import functools
 from io import BytesIO
 from pathlib import Path
-
-
-class Dict(dict):
-    __setattr__ = dict.__setitem__
-    __getattr__ = dict.__getitem__
-
-
-def dict_to_object(dict_obj):
-    if not isinstance(dict_obj, dict):
-        return dict_obj
-    inst = Dict()
-    for k, v in dict_obj.items():
-        inst[k] = dict_to_object(v)
-    return inst
-
-
-# 获取配置
-def get_config(name='config.yml'):
-    file = open(os.path.join(os.path.dirname(__file__), str(Path(name))),
-                'r',
-                encoding="utf-8")
-    return dict_to_object(yaml.load(file.read(), Loader=yaml.FullLoader))
-
-
-config = get_config()
-
-
-# 获取字符串中的关键字
-def get_msg_keyword(keyword, msg, is_first=False):
-    msg = msg[0] if isinstance(msg, tuple) else msg
-    res = re.split(format_reg(keyword, is_first), msg, 1)
-    res = tuple(res[::-1]) if len(res) == 2 else False
-    return ''.join(res) if is_first and res else res
-
-
-# 格式化配置中的正则表达式
-def format_reg(keyword, is_first=False):
-    keyword = keyword if isinstance(keyword, list) else [keyword]
-    return f"{'|'.join([f'^{i}' for i in keyword] if is_first else keyword)}"
 
 
 def get_path(*paths):
     return os.path.join(os.path.dirname(__file__), *paths)
 
 
-db = {}
-
-
-# 初始化数据库
-def init_db(db_dir, db_name='db.sqlite', tablename='unnamed') -> SqliteDict:
-    if db.get(db_name):
-        return db[db_name]
-    db[db_name] = SqliteDict(get_path(db_dir, db_name),
-                             tablename=tablename,
-                             encode=json.dumps,
-                             decode=json.loads,
-                             autocommit=True)
-    return db[db_name]
-
-
-# 寻找MessageSegment里的某个关键字的位置
-def find_ms_str_index(ms, keyword, is_first=False):
-    for index, item in enumerate(ms):
-        if item['type'] == 'text' and re.search(format_reg(keyword, is_first),
-                                                item['data']['text']):
-            return index
-    return -1
-
-
-def filter_list(plist, func):
-    return list(filter(func, plist))
-
-
-def list_split(items, n):
-    return [items[i:i + n] for i in range(0, len(items), n)]
-
-
-def is_group_admin(ctx):
-    return ctx['sender']['role'] in ['owner', 'admin', 'administrator']
-
-
-def get_next_day():
-    return time.mktime((datetime.date.today() +
-                        datetime.timedelta(days=+1)).timetuple()) + 1000
-
-
 def get_font(size, w='85'):
-    return ImageFont.truetype(get_path('assets', 'font', f'HYWenHei {w}W.ttf'),
+    return ImageFont.truetype(get_path('assets', f'HYWenHei {w}W.ttf'),
                               size=size)
-
-
-def pil2b64(data):
-    bio = BytesIO()
-    data = data.convert("RGB")
-    data.save(bio, format='JPEG', quality=80)
-    base64_str = base64.b64encode(bio.getvalue()).decode()
-    return 'base64://' + base64_str
-
-
-def cache(ttl=datetime.timedelta(hours=1), arg_key=None):
-    def wrap(func):
-        cache_data = {}
-
-        @functools.wraps(func)
-        async def wrapped(*args, **kw):
-            nonlocal cache_data
-            default_data = {"time": None, "value": None}
-            ins_key = 'default'
-            if arg_key:
-                ins_key = arg_key + str(kw.get(arg_key, ''))
-                data = cache_data.get(ins_key, default_data)
-            else:
-                data = cache_data.get(ins_key, default_data)
-
-            now = datetime.datetime.now()
-            if not data['time'] or now - data['time'] > ttl:
-                try:
-                    data['value'] = await func(*args, **kw)
-                    data['time'] = now
-                    cache_data[ins_key] = data
-                except Exception as e:
-                    raise e
-
-            return data['value']
-
-        return wrapped
-
-    return wrap
-
-
-async def github(path):
-    try:
-        url = f'https://cdn.jsdelivr.net/gh/{path}'
-        async with httpx.AsyncClient() as client:
-            res = await client.get(url, timeout=10)
-        return await res.content
-    except httpx.ConnectError:
-        raise
-
-
-gh_end_point = 'pcrbot/erinilis-modules/egenshin/'
-
-
-async def gh_json(file_path):
-    return json.loads(await github(gh_end_point + file_path), object_hook=Dict)
-
-
-async def gh_file(file_path, **kw):
-    kw['url'] = gh_end_point + file_path
-    return await require_file(**kw)
 
 
 async def require_file(file=None,
@@ -202,50 +52,138 @@ async def require_file(file=None,
     return await read()
 
 
-@cache(ttl=datetime.timedelta(minutes=30), arg_key='url')
-async def cache_request_json(url):
-    async with httpx.AsyncClient() as client:
-        res = await client.get(url, timeout=10)
-    return await res.json(object_hook=Dict)
+class stats:
+    def __init__(self, data, max_hide=False):
+        self.data = data
+        self.max_hide = max_hide
 
+    @property
+    def active_day(self) -> int:
+        return self.data['active_day_number']
 
-@cache(ttl=datetime.timedelta(hours=24))
-async def get_game_version():
-    url = 'https://sdk-static.mihoyo.com/hk4e_cn/mdk/launcher/api/resource?key=eYd89JmJ&launcher_id=18'
-    async with httpx.AsyncClient() as client:
-        res = await client.get(url, timeout=10)
-    json_data = await res.json(object_hook=Dict)
-    if json_data.retcode != 0:
-        raise Exception(json_data.message)
-    latest = json_data.data.game.latest
-    return latest.version
+    @property
+    def active_day_str(self) -> str:
+        return '活跃天数: %s' % self.active_day
 
+    @property
+    def achievement(self) -> int:
+        return self.data['achievement_number']
 
-running = {}
+    @property
+    def achievement_str(self) -> str:
+        return '成就达成数: %s' % self.achievement
 
+    @property
+    def anemoculus(self) -> int:
+        return self.data['anemoculus_number']
 
-class process:
-    def __init__(self, key, timeout=0):
-        self.key = key
-        self.timeout = timeout
+    @property
+    def anemoculus_str(self) -> str:
+        if self.max_hide and self.anemoculus == 66:
+            return ''
+        return '风神瞳: %s/66' % self.anemoculus
 
-    def get(self):
-        return running.get(self.key, {})
+    @property
+    def geoculus(self) -> int:
+        return self.data['geoculus_number']
 
-    def start(self):
-        running[self.key] = {'run': True, 'start_time': time.time()}
-        return self
+    @property
+    def geoculus_str(self) -> str:
+        if self.max_hide and self.geoculus == 131:
+            return ''
+        return '岩神瞳: %s/131' % self.geoculus
 
-    def ok(self):
-        if running.get(self.key):
-            del running[self.key]
+    @property
+    def electroculus(self) -> int:
+        return self.data['electroculus_number']
 
-    def is_run(self):
-        run = self.get()
-        if not run:
-            return False
-        if run.get('start_time') + self.timeout < time.time(
-        ) and not self.timeout == 0:
-            self.ok()
-            return False
-        return bool(run.get('run'))
+    @property
+    def electroculus_str(self) -> str:
+        if self.max_hide and self.electroculus == 95:
+            return ''
+        return '雷神瞳: %s/95' % self.electroculus
+
+    @property
+    def avatar(self) -> int:
+        return self.data['avatar_number']
+
+    @property
+    def avatar_str(self) -> str:
+        return '获得角色数: %s' % self.avatar
+
+    @property
+    def way_point(self) -> int:
+        return self.data['way_point_number']
+
+    @property
+    def way_point_str(self) -> str:
+        # if self.max_hide and self.way_point == 83:
+        #     return ''
+        return '解锁传送点: %s' % self.way_point
+
+    @property
+    def domain(self) -> int:
+        return self.data['domain_number']
+
+    @property
+    def domain_str(self) -> str:
+        return '解锁秘境: %s' % self.domain
+
+    @property
+    def spiral_abyss(self) -> str:
+        return self.data['spiral_abyss']
+
+    @property
+    def spiral_abyss_str(self) -> str:
+        return '' if self.spiral_abyss == '-' else '当期深境螺旋: %s' % self.spiral_abyss
+
+    @property
+    def common_chest(self) -> int:
+        return self.data['common_chest_number']
+
+    @property
+    def common_chest_str(self) -> str:
+        return '普通宝箱: %s' % self.common_chest
+
+    @property
+    def exquisite_chest(self) -> int:
+        return self.data['exquisite_chest_number']
+
+    @property
+    def exquisite_chest_str(self) -> str:
+        return '精致宝箱: %s' % self.exquisite_chest
+
+    @property
+    def luxurious_chest(self) -> int:
+        return self.data['luxurious_chest_number']
+
+    @property
+    def luxurious_chest_str(self) -> str:
+        return '华丽宝箱: %s' % self.luxurious_chest
+
+    @property
+    def precious_chest(self) -> int:
+        return self.data['precious_chest_number']
+
+    @property
+    def precious_chest_str(self) -> str:
+        return '珍贵宝箱: %s' % self.precious_chest
+
+    @property
+    def string(self):
+        str_list = [
+            self.active_day_str,
+            self.achievement_str,
+            self.anemoculus_str,
+            self.geoculus_str,
+            self.electroculus_str,
+            self.avatar_str,
+            self.way_point_str,
+            self.domain_str,
+            self.spiral_abyss_str,
+            self.luxurious_chest_str,
+            self.precious_chest_str,
+            self.exquisite_chest_str,
+            self.common_chest_str
+        ]
+        return '\n'.join(list(filter(None, str_list)))
