@@ -12,5 +12,5 @@
 - [x] ✅Fancy
 - [ ] ♾️Color
 - [ ] 💠[Adachi](https://github.com/Arondight/Adachi-BOT)
-- [x] ✅[eGenshin]([erinilis-modules/egenshin at master · pcrbot/erinilis-modules (github.com)](https://github.com/pcrbot/erinilis-modules/tree/master/egenshin))
+- [x] ✅[eGenshin](https://github.com/pcrbot/erinilis-modules/tree/master/egenshin)
 - [ ] 🔜[GenshinUID](https://github.com/KimigaiiWuyi/GenshinUID)
