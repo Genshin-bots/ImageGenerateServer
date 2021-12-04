@@ -30,7 +30,7 @@ def get_images(filename):
 
 
 @app.route('/generator/user_info', methods=['GET', 'POST'])
-def gen_info_card():
+async def gen_info_card():
     if request.method == 'POST':
         args: dict = dict(request.args)
         try:
@@ -48,7 +48,7 @@ def gen_info_card():
                 "ErrorMsg": f"Style {cur_style} not found."
             }
         try:
-            generated = style.user_info(cur_style, data, **args)
+            generated = await style.user_info(cur_style, data, **args)
         except KeyError:
             return {
                 "retcode": 2,

@@ -1,10 +1,27 @@
-from PIL import ImageFont
+from PIL import ImageFont, Image
 import aiofiles
 import httpx
 
 import os
-from io import BytesIO
 from pathlib import Path
+
+AVATAR_DIR = Path(__file__).parent.parent / "avatars"
+if not AVATAR_DIR:
+    AVATAR_DIR.mkdir()
+
+
+async def get_avatar(url) -> Image.Image:
+    filename = url.split('/')[-1:][0]
+    file_path = AVATAR_DIR / filename
+    if file_path.exists():
+        return Image.open(file_path)
+    async with httpx.AsyncClient() as c:
+        resp = await c.get(url)
+        if resp.status_code != 200:
+            raise httpx.RequestError
+    with open(file_path, 'wb+') as f:
+        f.write(resp.content)
+    return Image.open(file_path)
 
 
 def get_path(*paths):
@@ -41,7 +58,7 @@ async def require_file(file=None,
     try:
         async with httpx.AsyncClient() as client:
             res = await client.get(url, timeout=timeout)
-        content = await res.content
+        content = res.content
     except httpx.ConnectError:
         raise
 

@@ -1,5 +1,4 @@
 import os
-from io import BytesIO
 
 import requests
 import toml
@@ -31,12 +30,6 @@ head_raw_right = '普通宝箱：{common_chest_number}\n精致宝箱：{exquisit
 
 if not os.path.exists(ICON_PATH):
     os.makedirs(ICON_PATH)
-
-
-def pil2bio(im: Image.Image):
-    bio = BytesIO()
-    im.save(bio, format='PNG')
-    return bio
 
 
 def mk_suit(im1, im2):

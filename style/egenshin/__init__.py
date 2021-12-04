@@ -1,21 +1,28 @@
-import datetime
+from .utils import get_font, get_path, require_file, stats, get_avatar
+from .imghandler import *
+
 import os
-from io import BytesIO
+import sys
 from pathlib import Path
 
-from .imghandler import *
-from .utils import get_font, get_path, require_file, stats
+sys.path.append(str(Path(__file__).parent.parent))
 
-assets_dir = Path(__file__) / 'assets'
-
+assets_dir = Path(__file__).parent / 'assets'
+CHARA_CARD = assets_dir / 'chara_card'
 info_bg = Image.open(assets_dir / "原神资料卡.png")
 weapon_bg = Image.open(assets_dir / "weapon_bg.png")
 weapon_icon_dir = assets_dir / 'weapon'
 abyss_star_bg = Image.open(assets_dir / "深渊星数.png").convert('RGBA')
+avatar_bgs = {i: Image.open(assets_dir / f"UI_QualityBg_{i}.png") for i in [4, 5, 105]}
+chara_footer = Image.open(assets_dir / "chara_footer.png")
+chara_crop_mask = Image.open(assets_dir / "chara_crop_mask.png")
 
 weapon_card_bg = {}
 for i in range(1, 6):
-    weapon_card_bg[i] = Image.open(assets_dir / 'player_info' / f"{i}星武器.png")
+    weapon_card_bg[i] = Image.open(assets_dir / f"{i}星武器.png")
+
+if not CHARA_CARD:
+    CHARA_CARD.mkdir()
 
 QQ_Avatar = True  # 是否使用QQ头像
 
@@ -25,11 +32,30 @@ QQ_Avatar = True  # 是否使用QQ头像
 SHOW_SPIRAL_ABYSS_STAR = True  # 是否显示深渊信息
 SHOW_WEAPON_INFO = True  # 是否显示武器信息
 
-CHARA_CARD = assets_dir / "chara_card"
-CHARA = assets_dir / 'player_info'
+AVATARS = assets_dir.parent / "avatars"
 
 
-async def avatar_card(avatar_id, level, constellation, fetter, detail_info):
+async def gen_char_card(character_data, return_pil_obj=False) -> Image.Image:
+    filename = character_data["image"].split('/')[-1:][0]
+    file_path = CHARA_CARD / filename
+    if file_path.exists():
+        return Image.open(file_path)
+    chara_card_canvas = Image.new('RGBA', (250, 304), None)
+    avatar_ = (await get_avatar(character_data["image"])).resize((220, 220))
+    element_icon = Image.open(Path(assets_dir / f'{character_data["element"]}.png'))
+    avatar_bg: Image.Image = avatar_bgs[character_data["rarity"]]
+    avatar_bg = avatar_bg.resize((250, 304))
+    avatar_bg.paste(avatar_, (15, 20), mask=avatar_.split()[3])
+    avatar_bg.paste(chara_footer, (10, 200), mask=chara_footer.split()[3])
+    chara_card_canvas.paste(avatar_bg, (0, 0), mask=chara_crop_mask)
+    chara_card_canvas = chara_card_canvas.crop((12, 11, 238, 293))
+    chara_card_canvas.paste(element_icon, (5, 5), mask=element_icon.split()[3])
+    chara_card_canvas.save(file_path)
+    if return_pil_obj:
+        return chara_card_canvas
+
+
+async def avatar_card(character_data):
     """
     生成角色缩略信息卡
     avatar_id：角色id
@@ -37,25 +63,27 @@ async def avatar_card(avatar_id, level, constellation, fetter, detail_info):
     constellation：命之座等级
     fetter：好感度等级
     """
-    card = Image.open(os.path.join(CHARA_CARD, f'{avatar_id}.png'))
-    draw_text_by_line(card, (0, 235), f'Lv.{level}', get_font(35), '#475463', 226, True)
-    if constellation > 0:
-        i_con = Image.open(os.path.join(CHARA, f'命之座{constellation}.png'))
+    card = Image.open(
+        CHARA_CARD / character_data["image"].split("/")[-1:][0])  # await get_avatar(character_data["image"])
+    draw_text_by_line(card, (0, 235), f'Lv.{character_data["level"]}', get_font(35), '#475463', 226, True)
+    if character_data["actived_constellation_num"] > 0:
+        i_con = Image.open(os.path.join(assets_dir, f'命之座{character_data["actived_constellation_num"]}.png'))
         card = easy_alpha_composite(card, i_con, (160, -5))
 
-    i_fet = Image.open(os.path.join(CHARA, f'好感度{fetter}.png'))
+    i_fet = Image.open(os.path.join(assets_dir, f'好感度{character_data["fetter"]}.png'))
     card = easy_alpha_composite(card, i_fet, (0, 165))
 
     # 显示详细信息
-    if detail_info:
+    if "weapon" in character_data:
         # 武器信息
-        weapon_info = detail_info.weapon
+        detail_info = character_data
+        weapon_info = detail_info["weapon"]
         new_card = Image.new("RGBA", (card.width, card.height + weapon_bg.height))
         new_card = easy_alpha_composite(new_card, card, (0, 0))
 
         # 武器背景
         weapon_card = weapon_bg.copy()
-        new_weapon_card_bg = weapon_card_bg[weapon_info.rarity].copy()
+        new_weapon_card_bg = weapon_card_bg[weapon_info["rarity"]].copy()
         # 武器等级
 
         weapon_card = easy_alpha_composite(weapon_card, new_weapon_card_bg, (4, 3))
@@ -85,13 +113,7 @@ async def avatar_card(avatar_id, level, constellation, fetter, detail_info):
     return card
 
 
-async def gen_detail_info(uid, character_ids):
-    info = await query.character(uid=uid, character_ids=character_ids)
-    return {x.id: x for x in info.data.avatars}
-
-
-# @cache(ttl=datetime.timedelta(minutes=30), arg_key='uid')
-async def user_info(uid, qid, nickname, raw_data, max_chara=None, **kwargs):
+async def user_info(raw_data, **kwargs):
     """
     绘制玩家资料卡
     """
@@ -99,34 +121,35 @@ async def user_info(uid, qid, nickname, raw_data, max_chara=None, **kwargs):
     qid = kwargs.get('qid') if 'qid' in kwargs else ""
     nickname = kwargs.get('nickname') if 'nickname' in kwargs else ""
     max_chara = kwargs.get('max_chara') if 'max_chara' in kwargs else None
+    abyss_star = kwargs.get('abyss_star') if 'abyss_star' in kwargs else None
 
-    stats_ = query.stats(raw_data.stats, True)
+    stats_ = stats(raw_data["data"]["stats"], True)
     world_explorations = {}
-    for w in raw_data.world_explorations:
+    for w in raw_data["data"]["world_explorations"]:
         if isinstance(w['exploration_percentage'], int):
-            w.exploration_percentage = str(w['exploration_percentage'] / 10)
-            if w.exploration_percentage == '100.0':
-                w.exploration_percentage = '100'
-        world_explorations[w.name] = w
+            w["exploration_percentage"] = str(w['exploration_percentage'] / 10)
+            if w["exploration_percentage"] == '100.0':
+                w["exploration_percentage"] = '100'
+        world_explorations[w["name"]] = w
 
-    char_data = raw_data.avatars
+    char_data = raw_data["data"]["avatars"]
+    for c in char_data:
+        await gen_char_card(c)
 
-    for k in raw_data.avatars:
+    for k in char_data:
         if k['name'] == '旅行者':
             k['rarity'] = 3
         if k['name'] == '埃洛伊':
             k['rarity'] = 3
 
-    char_data.sort(key=lambda x: (-x['rarity'], -x['actived_constellation_num'], -x['level']))  # , -x['fetter']
+    char_data = sorted(char_data, key=lambda x: (-x['rarity'], -x['actived_constellation_num'], -x['level']))
 
     # 头像
-    if QQ_Avatar:
-        url = f'http://q.qlogo.cn/headimg_dl?dst_uin={qid}&spec=640&img_type=jpg'
-        avatar = await get_pic(url, (256, 256))
-        # url = f'http://q1.qlogo.cn/g?b=qq&nk={qid}&s=640'
+    if QQ_Avatar and qid:
+        avatar = await get_pic(f'https://q.qlogo.cn/headimg_dl?dst_uin={qid}&spec=640&img_type=jpg', (256, 256)) \
+            if qid else Image.new('RGBA', (256, 256), None)
     else:
-        cid = char_data[0]['id']
-        avatar = Image.open(assets_dir / "avatar" / f"{cid}.png")
+        avatar = await get_avatar(char_data[0]["image"])
     card_bg = Image.new('RGB', (1080, 1820), '#d19d78')
     easy_paste(card_bg, avatar, (412, 140))
     easy_paste(card_bg, info_bg, (0, 0))
@@ -157,48 +180,37 @@ async def user_info(uid, qid, nickname, raw_data, max_chara=None, **kwargs):
     text_draw.text((860, 1197), stats_.luxurious_chest.__str__(), '#caae93', get_font(36))
     # 蒙德
     world = world_explorations['蒙德']
-    text_draw.text((370, 1370), str(world.exploration_percentage) + '%', '#d4aa6b', get_font(32))
-    text_draw.text((370, 1414), 'Lv.' + str(world.level), '#d4aa6b', get_font(32))
+    text_draw.text((370, 1370), str(world["exploration_percentage"]) + '%', '#d4aa6b', get_font(32))
+    text_draw.text((370, 1414), 'Lv.' + str(world["level"]), '#d4aa6b', get_font(32))
     text_draw.text((370, 1456), stats_.anemoculus.__str__(), '#d4aa6b', get_font(32))
     # 璃月
     world = world_explorations['璃月']
-    text_draw.text((896, 1370), str(world.exploration_percentage) + '%', '#d4aa6b', get_font(32))
-    text_draw.text((896, 1414), 'Lv.' + str(world.level), '#d4aa6b', get_font(32))
+    text_draw.text((896, 1370), str(world["exploration_percentage"]) + '%', '#d4aa6b', get_font(32))
+    text_draw.text((896, 1414), 'Lv.' + str(world["level"]), '#d4aa6b', get_font(32))
     text_draw.text((896, 1456), stats_.geoculus.__str__(), '#d4aa6b', get_font(32))
     # 雪山
     world = world_explorations['龙脊雪山']
-    text_draw.text((350, 1555), str(world.exploration_percentage) + '%', '#d4aa6b', get_font(32))
-    text_draw.text((350, 1612), 'Lv.' + str(world.level), '#d4aa6b', get_font(32))
+    text_draw.text((350, 1555), str(world["exploration_percentage"]) + '%', '#d4aa6b', get_font(32))
+    text_draw.text((350, 1612), 'Lv.' + str(world["level"]), '#d4aa6b', get_font(32))
     # 稻妻
     world = world_explorations['稻妻']
-    text_draw.text((880, 1543), str(world.exploration_percentage) + '%', '#d4aa6b', get_font(24))
-    text_draw.text((880, 1576), 'Lv.' + str(world.level), '#d4aa6b', get_font(24))
-    text_draw.text((880, 1606), 'Lv.' + str(world.offerings[0].level), '#d4aa6b', get_font(24))
+    text_draw.text((880, 1543), str(world["exploration_percentage"]) + '%', '#d4aa6b', get_font(24))
+    text_draw.text((880, 1576), 'Lv.' + str(world["level"]), '#d4aa6b', get_font(24))
+    text_draw.text((880, 1606), 'Lv.' + str(world["offerings"][0]["level"]), '#d4aa6b', get_font(24))
     text_draw.text((880, 1639), stats_.electroculus.__str__(), '#d4aa6b', get_font(24))
 
     # 深渊星数
-    if SHOW_SPIRAL_ABYSS_STAR:
-        abyss_info = await query.spiralAbyss(uid=uid)
-        if abyss_info.retcode != 0:
-            raise Exception(abyss_info.message)
-
+    if SHOW_SPIRAL_ABYSS_STAR and abyss_star:
         new_abyss_star_bg = abyss_star_bg.copy()
-        draw_text_by_line(new_abyss_star_bg, (0, 60), str(abyss_info.data.total_star), get_font(36), '#78818b', 64,
+        draw_text_by_line(new_abyss_star_bg, (0, 60), str(abyss_star), get_font(36), '#78818b', 64,
                           True)
         card_bg = easy_alpha_composite(card_bg.convert('RGBA'), new_abyss_star_bg, (925, 710))
 
-    detail_info = None
     detail_info_height = 0
-    if max_chara is None and SHOW_WEAPON_INFO:
-        detail_info = await gen_detail_info(uid, [x.id for x in raw_data.avatars])
-        detail_info_height = weapon_bg.height
 
     avatar_cards = []
     for chara in char_data[:max_chara or len(char_data)]:
-        card = await avatar_card(chara['id'], chara["level"],
-                                 chara["actived_constellation_num"],
-                                 chara["fetter"], detail_info
-                                 and detail_info[chara['id']])
+        card = await avatar_card(chara)
         avatar_cards.append(card)
 
     chara_bg = Image.new('RGB', (1080, math.ceil(len(avatar_cards) / 4) *
@@ -210,3 +222,14 @@ async def user_info(uid, qid, nickname, raw_data, max_chara=None, **kwargs):
     easy_paste(info_card, chara_img.convert('RGBA'), (0, card_bg.size[1]))
 
     return info_card
+
+
+if __name__ == '__main__':
+    import json
+    import asyncio
+
+    with open(r'F:\wansn_dir\project\IGS\user_info.json', 'r', encoding='utf-8') as f:
+        user_info_data = json.load(f)
+    # im: Image.Image = asyncio.run(user_info(user_info_data))
+    im: Image.Image = asyncio.run(gen_char_card(user_info_data["data"]["avatars"][0], True))
+    im.show()

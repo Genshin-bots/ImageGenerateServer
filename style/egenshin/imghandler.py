@@ -1,5 +1,4 @@
-from PIL import Image, ImageDraw, ImageFont, ImageOps
-from .utils import get_font
+from PIL import Image, ImageDraw
 import httpx
 
 from io import BytesIO

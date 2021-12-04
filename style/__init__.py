@@ -1,4 +1,5 @@
 from PIL import Image
+from .tweaks import *
 
 import os
 import sys
@@ -15,13 +16,5 @@ class Style:
         for sn in self.list:
             self.styles[sn.name] = __import__(sn.name)
 
-    def user_info(self, name, raw_data, **kwargs) -> Image.Image:
-        return self.styles[name].user_info(raw_data, **kwargs)
-
-
-if __name__ == '__main__':
-    from tweaks import timer
-    import json
-
-    with open('F:\\wansn_dir\\project\\user_info\\data_userinfo.json', 'r', encoding='utf-8') as f:
-        u = json.load(f)
+    async def user_info(self, name, raw_data, **kwargs) -> Image.Image:
+        return await self.styles[name].user_info(raw_data, **kwargs)
