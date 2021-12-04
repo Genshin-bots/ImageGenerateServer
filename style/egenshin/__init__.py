@@ -21,7 +21,7 @@ weapon_card_bg = {}
 for i in range(1, 6):
     weapon_card_bg[i] = Image.open(assets_dir / f"{i}星武器.png")
 
-if not CHARA_CARD:
+if not CHARA_CARD.exists():
     CHARA_CARD.mkdir()
 
 QQ_Avatar = True  # 是否使用QQ头像

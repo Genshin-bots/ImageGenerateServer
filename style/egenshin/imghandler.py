@@ -13,7 +13,7 @@ async def get_pic(url, size=None, *args, **kwargs) -> Image:
         resp = await client.get(url, *args, **kwargs)
     if resp.status_code != 200:
         return None
-    pic = Image.open(BytesIO(await resp.content))
+    pic = Image.open(BytesIO(resp.content))
     pic = pic.convert("RGBA")
     if size is not None:
         pic = pic.resize(size, Image.LANCZOS)
