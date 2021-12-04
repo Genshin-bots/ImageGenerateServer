@@ -47,9 +47,11 @@ async def get_image(url: str, folder=IMAGES) -> Image.Image:
     if offline_image.exists():
         return Image.open(offline_image)
     async with httpx.AsyncClient() as c:
-        resp = await c.get(url).content
+        resp = await c.get(url)
+        if resp.status_code != 200:
+            raise httpx.ConnectError
     with open(offline_image, 'wb') as tmp_icon:
-        tmp_icon.write(resp)
+        tmp_icon.write(resp.content)
     return Image.open(offline_image)
 
 
