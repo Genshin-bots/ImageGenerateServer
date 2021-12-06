@@ -118,7 +118,7 @@ async def user_info(raw_data, **kwargs):
     绘制玩家资料卡
     """
     uid = kwargs.get('uid') if 'uid' in kwargs else ""
-    avatar = kwargs.get('qid') if 'qid' in kwargs else ""
+    avatar = kwargs.get('avatar') if 'avatar' in kwargs else None
     nickname = kwargs.get('nickname') if 'nickname' in kwargs else ""
     max_chara = kwargs.get('max_chara') if 'max_chara' in kwargs else None
     abyss_star = kwargs.get('abyss_star') if 'abyss_star' in kwargs else None
@@ -146,8 +146,11 @@ async def user_info(raw_data, **kwargs):
 
     # 头像
     if Use_Avatar and avatar:
-        avatar_url = f'https://q.qlogo.cn/headimg_dl?dst_uin={avatar}&spec=640&img_type=jpg' if avatar.isdigit() else None
-        avatar_url = avatar if not avatar_url and avatar.startswith(('http://', 'https://')) else None
+        if avatar.isdigit():
+            avatar_url = f'https://q.qlogo.cn/headimg_dl?dst_uin={avatar}&spec=640&img_type=jpg'
+        if avatar.startswith(('http://', 'https://')):
+            avatar_url = avatar
+        print(avatar_url)
         avatar_pic = await get_pic(avatar_url, (256, 256)) if avatar_url else Image.new('RGBA', (256, 256), None)
     else:
         avatar_pic = await get_avatar(char_data[0]["image"])
