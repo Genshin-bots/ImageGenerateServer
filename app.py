@@ -18,7 +18,7 @@ if not SAVE_PATH.exists():
     SAVE_PATH.mkdir()
 
 
-@app.route('/images/<string:filename>')
+@app.route('/image/<string:filename>')
 def get_images(filename):
     file_path = Path('tmp_images') / filename
     if not file_path.exists():
