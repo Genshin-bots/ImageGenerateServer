@@ -2,9 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.css">
+    <title>IGS - 角色查询图片生成</title>
 </head>
 <body>
-
+<nav class="navbar is-transparent">
+    <div class="navbar-brand">
+        <a class="navbar-item" href="#">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="GenshinImpactGame"
+                 width="41" height="28">
+        </a>
+    </div>
+    <div id="navbarExampleTransparentExample" class="navbar-menu">
+        <div class="navbar-start">
+            <a class="navbar-item" href="#">
+                主页
+            </a>
+            <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link" href="#">
+                    文档
+                </a>
+                <div class="navbar-dropdown is-boxed">
+                    <a class="navbar-item" href="#">
+                        概览
+                    </a>
+                    <hr class="navbar-divider">
+                    <a class="navbar-item is-active" href="#">
+                        样式列表
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+<div class="container is-fluid">
+    <h1 class="title" style="text-align: center;">Image Generate Server</h1>
+</div>
 </body>
 </html>

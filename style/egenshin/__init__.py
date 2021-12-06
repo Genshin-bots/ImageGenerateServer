@@ -24,7 +24,7 @@ for i in range(1, 6):
 if not CHARA_CARD.exists():
     CHARA_CARD.mkdir()
 
-QQ_Avatar = True  # 是否使用QQ头像
+Use_Avatar = True  # 是否使用头像
 
 # 以下2个选项控制显示深渊星数 已经角色武器信息, 可能会使用额外的cookie次数
 # 已知每个cookie能查询30次, 查询基本信息为一次, 深渊信息为一次, 武器信息为一次
@@ -118,7 +118,7 @@ async def user_info(raw_data, **kwargs):
     绘制玩家资料卡
     """
     uid = kwargs.get('uid') if 'uid' in kwargs else ""
-    qid = kwargs.get('qid') if 'qid' in kwargs else ""
+    avatar = kwargs.get('qid') if 'qid' in kwargs else ""
     nickname = kwargs.get('nickname') if 'nickname' in kwargs else ""
     max_chara = kwargs.get('max_chara') if 'max_chara' in kwargs else None
     abyss_star = kwargs.get('abyss_star') if 'abyss_star' in kwargs else None
@@ -145,13 +145,14 @@ async def user_info(raw_data, **kwargs):
     char_data = sorted(char_data, key=lambda x: (-x['rarity'], -x['actived_constellation_num'], -x['level']))
 
     # 头像
-    if QQ_Avatar and qid:
-        avatar = await get_pic(f'https://q.qlogo.cn/headimg_dl?dst_uin={qid}&spec=640&img_type=jpg', (256, 256)) \
-            if qid else Image.new('RGBA', (256, 256), None)
+    if Use_Avatar and avatar:
+        avatar_url = f'https://q.qlogo.cn/headimg_dl?dst_uin={avatar}&spec=640&img_type=jpg' if avatar.isdigit() else None
+        avatar_url = avatar if not avatar_url and avatar.startswith(('http://', 'https://')) else None
+        avatar_pic = await get_pic(avatar_url, (256, 256)) if avatar_url else Image.new('RGBA', (256, 256), None)
     else:
-        avatar = await get_avatar(char_data[0]["image"])
+        avatar_pic = await get_avatar(char_data[0]["image"])
     card_bg = Image.new('RGB', (1080, 1820), '#d19d78')
-    easy_paste(card_bg, avatar, (412, 140))
+    easy_paste(card_bg, avatar_pic, (412, 140))
     easy_paste(card_bg, info_bg, (0, 0))
     text_draw = ImageDraw.Draw(card_bg)
     # UID
