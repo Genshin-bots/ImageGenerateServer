@@ -1,7 +1,8 @@
 /.idea/
+/.idea/*
 .idea/*
 /tmp_images
 __pycache__
 /style/egenshin/assets/chara_card/*
 /style/avatars/*
-.idea/IGS.iml
+
