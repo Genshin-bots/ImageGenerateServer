@@ -48,10 +48,12 @@ async def gen_info_card():
         quality = args.get("quality") if "quality" in args else 100
         if isinstance(generated, Image.Image):
             try:
-                if pic_type == 'jpg':
+                if pic_type in ['jpg', 'jpeg']:
                     generated.convert('RGB').save(filepath)
-                else:
+                elif pic_type == ['png']:
                     generated.save(filepath, quality=quality)
+                else:
+                    generated.save(filepath)
             except ValueError as err_msg:
                 return response.generate_error(err_msg)
             return response.success(url_for('.get_images', filename=filename))
