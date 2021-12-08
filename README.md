@@ -1,4 +1,6 @@
-# ImageGenerateServer / 玩家信息卡片生成
+![[object Object]](https://socialify.git.ci/Genshin-bots/ImageGenerateServer/image?description=1&font=KoHo&logo=https%3A%2F%2Fyuanshen.minigg.cn%2Fstatic%2Flogo.png&owner=1&pattern=Circuit%20Board&theme=Light)
+
+<div align="center"><img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/w/Genshin-bots/ImageGenerateServer?style=for-the-badge"> <img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/Genshin-bots/ImageGenerateServer?color=orange&style=for-the-badge"> <img alt="Demo" src="https://img.shields.io/static/v1?label=Demo&message=MiniGG&color=critical&style=for-the-badge"></div>
 
 > 不知道写啥.jpg
 >
@@ -14,3 +16,18 @@
 - [ ] 💠[Adachi](https://github.com/Arondight/Adachi-BOT)
 - [x] ✅[eGenshin](https://github.com/pcrbot/erinilis-modules/tree/master/egenshin)
 - [ ] 🔜[GenshinUID](https://github.com/KimigaiiWuyi/GenshinUID)
+
+### POST 数据格式
+
+```json
+{
+	"data": {
+		"avatars": [],
+		"stats": {},
+		"city_explorations": [],
+        "world_explorations": [],
+        "homes": []
+	}
+}
+```
+实际data格式依选择的样式有所删减
