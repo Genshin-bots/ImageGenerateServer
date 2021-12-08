@@ -1,4 +1,9 @@
-[Colors]
+Enhance = true # 更像原adachi的颜色
+
+enhance0 = 4 # 没设置Enhance为true的时候角色背景的高斯模糊半径
+enhance1 = 3 # 设置Enhance为true的时候角色背景的高斯模糊半径
+
+[Colors] # 七元素的颜色（角色背光
 Pyro = "rgb(255, 62, 62)"
 Hydro = "rgb(0, 38, 255)"
 Anemo = "rgb(0, 255, 42)"
