@@ -1,6 +1,7 @@
 from flask import Blueprint, request, url_for, render_template, send_file
 from style import Style, DEFAULT_STYLE
 from PIL import Image
+import data_response as response
 
 from pathlib import Path
 from string import ascii_letters
@@ -22,10 +23,7 @@ if not SAVE_PATH.exists():
 def get_images(filename):
     file_path = Path('tmp_images') / filename
     if not file_path.exists():
-        return {
-            "retcode": 4,
-            "ErrorMsg": f"File {filename} not found"
-        }
+        return response.not_found(filename)
     return send_file(file_path)
 
 
@@ -36,54 +34,33 @@ async def gen_info_card():
         try:
             data = json.loads(request.data)
         except json.decoder.JSONDecodeError as err:
-            return {
-                "retcode": 2,
-                "ErrorMsg": str(err)
-            }
+            return response.data_error(err)
         cur_style = args.get("style") if "style" in args else DEFAULT_STYLE
         if cur_style not in style.styles:
-            return {
-                "retcode": 3,
-                "ErrorMsg": f"Style {cur_style} not found."
-            }
+            return response.style_err(cur_style)
         try:
             generated = await style.user_info(cur_style, data, **args)
         except KeyError:
-            return {
-                "retcode": 2,
-                "ErrorMsg": "Data is not in standard format"
-            }
-        pic_type = args.get("type").lower() if "type" in args else 'png'
+            return response.data_error("Data is not in standard format")
+        pic_type = args.get("type").lower() if "type" in args else 'jpg'
         filename = time.strftime('%Y%m%d%H%M%S-' + ''.join(random.choices(abcs, k=8)) + '.' + pic_type)
         filepath = SAVE_PATH / filename
         quality = args.get("quality") if "quality" in args else 100
         if isinstance(generated, Image.Image):
             try:
-                generated.save(filepath, quality=quality)
+                if pic_type == 'jpg':
+                    generated.convert('RGB').save(filepath)
+                else:
+                    generated.save(filepath, quality=quality)
             except ValueError as err_msg:
-                return {
-                    "retcode": 2,
-                    "ErrorMsg": str(err_msg)
-                }
-            return {
-                "retcode": 0,
-                "Image_url": url_for('.get_images', filename=filename)
-            }
+                return response.generate_error(err_msg)
+            return response.success(url_for('.get_images', filename=filename))
         if isinstance(generated, bytes):
             with open(filepath, 'rb') as f:
                 f.write(generated)
-            return {
-                "retcode": 0,
-                "Image_url": url_for('.get_images', filename=filename)
-            }
+            return response.success(url_for('.get_images', filename=filename))
         if isinstance(generated, str):
-            return {
-                "retcode": 0,
-                "text": generated
-            }
-        return {
-            "retcode": 0,
-            "data": str(generated)
-        }
+            return response.success(generated, "Text")
+        return response.success(generated, "Data")
 
     return render_template('index.html')
