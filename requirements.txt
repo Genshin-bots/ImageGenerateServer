@@ -2,4 +2,6 @@ requests>=2.26.0
 toml>=0.10.2
 Pillow>=8.4.0
 Flask>=2.0.2
-Flask>=1.10.1
+httpx>=0.21.1
+aiofiles>=0.8.0
+anyio>=3.4.0
