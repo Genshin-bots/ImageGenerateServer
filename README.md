@@ -18,4 +18,4 @@
 - [ ] 🔜 [GenshinUID](https://github.com/KimigaiiWuyi/GenshinUID)
 
 ### API列表
-前往 [Wiki：API](/wiki/API) 查看
+前往 [Wiki：API](//github.com/Genshin-bots/ImageGenerateServer/wiki/API) 查看
