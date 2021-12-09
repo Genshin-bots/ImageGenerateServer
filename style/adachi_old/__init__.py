@@ -2,6 +2,7 @@ from PIL import Image, ImageFont, ImageFilter, ImageDraw, ImageEnhance
 import httpx
 import toml
 
+from io import BytesIO
 from time import time
 from pathlib import Path
 
@@ -11,10 +12,12 @@ AVATARS = Path(__file__).parent.parent / "avatars"
 head_bg: Image.Image = Image.open(ASSETS / "uid-upper-v2-2.png")
 middle_bg: Image.Image = Image.open(ASSETS / "card-middle.png")
 footer_bg: Image.Image = Image.open(ASSETS / "card-bottom.png")
-character_card_bg = Image.open(ASSETS / "character_card_bg.png")
+character_card_bg: Image.Image = Image.open(ASSETS / "character_card_bg.png")
+avatar_bg: Image.Image = Image.open(ASSETS / "avatar.png")
 character_card_rgb = {}
 
-font_character_card = ImageFont.truetype(str(ASSETS / "zh-cn.ttf"), size=16)
+font_character_card = ImageFont.truetype(str(ASSETS / "hywh_emoji-sym.ttf"), size=16)
+font_stats = ImageFont.truetype(str(ASSETS / "hywh_emoji-sym.ttf"), size=32)
 
 for c in config["Colors"]:
     element_color = config["Colors"][c] if config["Colors"][c] != "" else None
@@ -39,7 +42,12 @@ async def get_avatar(url) -> Image.Image:
 
 async def user_info(data, **kwargs):
     t2 = time()
+    uid = kwargs.get('uid') if 'uid' in kwargs else None
+    nickname = kwargs.get('nickname') if 'nickname' in kwargs else None
+    avatar = kwargs.get('avatar') if 'avatar' in kwargs else None
+
     data_characters = data["data"]["avatars"]
+    data_stats = data["data"]["stats"]
     # 计算
     character_amount = len(data_characters)
     cols = character_amount // 7 if character_amount % 7 == 0 else character_amount // 7 + 1
@@ -53,6 +61,33 @@ async def user_info(data, **kwargs):
     canvas.paste(head_bg)
     canvas.paste(footer_bg, (0, canvas_height - footer_bg.size[1]))
 
+    # 顶部
+    if avatar:
+        if avatar.isdigit():
+            async with httpx.AsyncClient() as client:
+                avatar_im = avatar_bg.copy()
+                resp = await client.get(f'https://q.qlogo.cn/headimg_dl?dst_uin={avatar}&spec=640&img_type=jpg')
+                tmp_im = Image.open(BytesIO(resp.content)).resize((145, 145))
+                avatar_im.paste(tmp_im, mask=tmp_im)
+        elif avatar.startswith(('http://', 'https://')):
+            async with httpx.AsyncClient() as client:
+                avatar_im = Image.open(BytesIO(await client.get(avatar))).resize((145, 145))
+    else:
+        avatar_im = avatar_bg.copy()
+        tmp_im = (await get_avatar(data_characters[0]["image"])).resize((145, 145))
+        avatar_im.paste(tmp_im, mask=tmp_im)
+    canvas.paste(avatar_im, (106, 86), mask=avatar_bg)
+
+    f_draw.multiline_text((325, 435), fill='#404040', font=font_stats, spacing=23, anchor='mm',
+                          text='{active_day_number}\n{achievement_number}\n'
+                               '{avatar_number}\n{spiral_abyss}\n{domain_number}'.format(**data_stats))
+    f_draw.multiline_text((665, 435), fill='#404040', font=font_stats, spacing=23, anchor='mm',
+                          text='{common_chest_number}\n{exquisite_chest_number}\n{precious_chest_number}\n'
+                               '{luxurious_chest_number}\n{magic_chest_number}'.format(**data_stats))
+    f_draw.multiline_text((990, 435), fill='#404040', font=font_stats, spacing=23, anchor='mm',
+                          text='{anemoculus_number}\n{geoculus_number}\n'
+                               '{electroculus_number}\n\n'.format(**data_stats))
+    # 角色背包
     for col in range(cols):
         col_start_y = head_bg.size[1] + col * middle_bg.size[1]
         canvas.paste(middle_bg, (0, col_start_y))
@@ -69,6 +104,11 @@ async def user_info(data, **kwargs):
             character_front.paste(character_avatar, (character_avatar_x, character_avatar_y), mask=character_avatar)
             f_draw.text((character_avatar_x + 68, character_avatar_y + 152),
                         fill='black', text=character["name"], font=font_character_card, anchor='mm')
+            f_draw.text((character_avatar_x + 48, character_avatar_y + 172),
+                        fill='#4bbb75', text=f'Lv.{character["level"]}', font=font_character_card, anchor='mm')
+            f_draw.text((character_avatar_x + 94, character_avatar_y + 172),
+                        fill='#e71bb2', text=f'❤{character["fetter"]}', font=font_character_card, anchor='mm')
+
     character_bg_canvas = \
         ImageEnhance.Brightness(character_bg_canvas.filter(ImageFilter.GaussianBlur(config["enhance1"]))).enhance(3) \
         if config["Enhance"] else character_bg_canvas.filter(ImageFilter.GaussianBlur(config["enhance0"]))

@@ -12,7 +12,7 @@ def data_error(msg="Data Error"):
     }
 
 
-def generate_error(msg="Generator Error"):
+def generator_error(msg="Generator Error"):
     return {
         "retcode": 2,
         "url": str(msg)
