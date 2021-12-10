@@ -33,7 +33,7 @@ async def gen_info_card():
     if request.method == 'POST':
         args: dict = dict(request.args)
         try:
-            data = json.loads(await request.data)
+            data = json.loads(request.data)
         except json.decoder.JSONDecodeError as err:
             return response.data_error(err)
         cur_style = args.get("style") if "style" in args else DEFAULT_STYLE

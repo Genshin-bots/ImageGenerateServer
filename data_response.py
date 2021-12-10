@@ -29,5 +29,5 @@ def style_err(style_):
 def not_found(pth_=""):
     return {
         "retcode": 4,
-        "ErrorMsg": "Path" + str(pth_) + "not found."
+        "ErrorMsg": "Path " + str(pth_) + " not found."
     }
