@@ -33,14 +33,16 @@ async def gen_info_card():
     if request.method == 'POST':
         args: dict = dict(request.args)
         try:
-            data = json.loads(request.data)
+            data = json.loads(await request.data)
         except json.decoder.JSONDecodeError as err:
             return response.data_error(err)
         cur_style = args.get("style") if "style" in args else DEFAULT_STYLE
         if cur_style not in style.styles:
             return response.style_err(cur_style)
         try:
+            t1 = time.time()
             generated = (await style.user_info(cur_style, data, **args)).convert('RGB')
+            t2 = time.time()
         except KeyError:
             return response.data_error("Data is not in standard format")
         pic_type = args.get("type").lower() if "type" in args else 'jpg'
@@ -55,11 +57,11 @@ async def gen_info_card():
                     generated.save(filepath)
                 else:
                     return response.generator_error(err)
-            return response.success(url_for('.get_images', filename=filename))
+            return response.success(url_for('.get_images', filename=filename), time=t2 - t1)
         if isinstance(generated, bytes):
             async with aiofiles.open(filepath, 'rb') as f:
                 await f.write(generated)
-            return response.success(url_for('.get_images', filename=filename))
+            return response.success(url_for('.get_images', filename=filename), time=t2 - t1)
         if isinstance(generated, str):
             return response.success(generated, "Text")
         return response.success(generated, "Data")

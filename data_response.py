@@ -1,6 +1,10 @@
-def success(msg, resp_type="Image"):
+def success(msg, resp_type="Image", time=None):
     return {
         "retcode": 0,
+        "url" if resp_type == "Image" else resp_type.lower(): str(msg)
+    } if not time else {
+        "retcode": 0,
+        "use_time": time,
         "url" if resp_type == "Image" else resp_type.lower(): str(msg)
     }
 

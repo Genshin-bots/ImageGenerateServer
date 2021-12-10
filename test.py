@@ -9,7 +9,7 @@ with open(Path(__file__).parent / "user_info.json", 'r', encoding='utf-8') as f:
 if __name__ == '__main__':
     print(requests.post('http://127.0.0.1:5000/generator/user_info', json=user_info, params={
         # "quality": 10,
-        "style": "adachi_old",
+        "style": "egenshin",
         # "type": "jpg",
         # "uid": 800505056,
         # "qid": 10001,
