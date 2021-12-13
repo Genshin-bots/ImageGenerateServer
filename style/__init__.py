@@ -19,9 +19,7 @@ if not AVATARS.exists():
 class Style:
     def __init__(self):
         self.list = list(filter(lambda x: x.ispkg, iter_modules([str(local_dir)])))
-        self.styles = {}
-        for sn in self.list:
-            self.styles[sn.name] = __import__(sn.name)
+        self.styles = {sn.name: __import__(sn.name) for sn in self.list}
 
     async def user_info(self, name, raw_data, **kwargs) -> Image.Image:
         return await self.styles[name].user_info(raw_data, **kwargs)

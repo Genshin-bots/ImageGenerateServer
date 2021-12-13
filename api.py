@@ -1,4 +1,4 @@
-from quart import Blueprint, request, url_for, send_file, render_template
+from quart import Blueprint, request, url_for, send_file, redirect
 from style import Style, DEFAULT_STYLE
 import data_response as response
 from PIL import Image
@@ -11,7 +11,6 @@ import time
 import json
 
 SAVE_PATH = Path('tmp_images')
-
 style = Style()
 api = Blueprint('API', __name__)
 abcs = ascii_letters + '0123456789'
@@ -66,4 +65,4 @@ async def gen_info_card():
             return response.success(generated, "Text")
         return response.success(generated, "Data")
     if request.method == 'GET':
-        return await render_template('user_info.html')
+        return redirect(url_for('Page.query_user_info'))

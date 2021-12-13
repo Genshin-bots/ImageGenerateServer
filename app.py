@@ -1,8 +1,7 @@
-from quart import Quart, render_template, send_file
-from data_response import not_found
-from API import api
-
-from pathlib import Path
+import quart.flask_patch
+from quart import Quart
+from page import page
+from api import api
 
 config = {
     'TEMPLATES_AUTO_RELOAD': True,  # 当模板被改变的时候自动重载
@@ -14,20 +13,7 @@ config = {
 app = Quart(__name__)
 app.config.from_mapping(config)
 app.register_blueprint(api)
-
-
-@app.route('/')
-async def index(url_path=None):
-    return await render_template('index.html')
-
-
-@app.route('/<url_path>')
-async def static_file(url_path):
-    fp = Path('static') / url_path
-    if fp.exists():
-        return await send_file(fp)
-    return not_found(url_path)
-
+app.register_blueprint(page)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>错误 - {{ error_msg }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.css">
+</head>
+<body>
+    <section class="hero is-{{ error_type }} is-fullheight">
+        <div class="hero-body">
+            <div class="">
+                <p class="title is-1">{{ error_msg }}</p>
+                <p class="subtitle">{{ error_description }}</p>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

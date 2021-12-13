@@ -2,9 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.css">
     <title>Title</title>
 </head>
 <body>
-
+    <section class="hero is-link">
+        <div class="hero-body">
+            <p class="title">UID查询 & 图像生成</p>
+            <p class="subtitle">需要您自己提供cookie</p>
+        </div>
+    </section>
+    <div class="container is-center">
+        <form class="box" method="POST" action="{{ url_for('Page.query_user_info') }}">
+            <div class="field">
+                {{ form.cookie.label(class="label") }}
+                <div class="control">
+                    {{ form.cookie(class="input") }}
+                </div>
+            </div>
+            <div class="field">
+                {{ form.uid.label(class="label") }}
+                <div class="control">
+                    {{ form.uid(class="input") }}
+                </div>
+            </div>
+            <div class="field">
+                <label for="{{ form.share_cookie.name }}" class="checkbox" title="将Cookie与我们共享">
+                    {{ form.share_cookie }}
+                    {{ form.share_cookie.label.text }}
+                </label>
+            </div>
+        <input class="button is-primary" type="submit" value="Go">
+        </form>
+    </div>
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                <b>IGS</b> by <a href="https://wansn.top">Wansn</a>&nbsp;&nbsp;
+                <strong>Server</strong> by <a href="https://minigg.cn">MiniGG</a>
+            </p>
+            <p>
+                <a class="has-text-dark" href="https://github.com/">
+                    <span class="fab fa-github" title="项目地址"></span>
+                </a>&nbsp;&nbsp;|&nbsp;&nbsp;
+                <a class="has-text-dark" href="https://yuanshen.minigg.cn">
+                    <span class="fas fa-server" title="演示站点"></span>
+                </a>&nbsp;&nbsp;|&nbsp;&nbsp;
+                <a class="has-text-dark" href="/">
+                    <span class="fas fa-home" title="主页"></span>
+                </a>
+            </p>
+        </div>
+    </footer>
 </body>
 </html>

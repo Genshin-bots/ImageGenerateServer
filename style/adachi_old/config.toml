@@ -11,3 +11,4 @@ Electro = "rgb(162, 0, 255)"
 Dendro = ""
 Cryo = "rgb(0, 204, 255)"
 Geo = "rgb(255, 196, 0)"
+None = 'rgb(0, 0, 0)'
